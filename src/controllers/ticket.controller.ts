@@ -3,6 +3,7 @@ import { TicketService } from '../services/ticket.service';
 import { buyTicketSchema, scanTicketSchema } from '../dtos/ticket.dto';
 import { sendResponse } from '../utils/response.util';
 import { AuthRequest } from '../interfaces/auth.interface';
+import { Ticket } from '../models/Ticket.model'; // <--- The missing import!
 
 const ticketService = new TicketService();
 
@@ -32,6 +33,20 @@ export const verifyTicketPayment = async (req: Request, res: Response, next: Nex
   }
 };
 
+export const scanTicket = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { error, value } = scanTicketSchema.validate(req.body);
+    if (error) return sendResponse(res, 400, false, error.details[0].message);
+
+    const { eventId } = req.body; 
+
+    const ticket = await ticketService.scanTicket(value.ticketId, eventId, req.user!.id);
+
+    sendResponse(res, 200, true, 'Ticket verified and admitted successfully', ticket);
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const setCustomReminder = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -51,23 +66,6 @@ export const setCustomReminder = async (req: AuthRequest, res: Response, next: N
     await ticket.save();
 
     sendResponse(res, 200, true, `Reminder successfully set to ${reminderHours} hours before the event`, ticket);
-  } catch (error) {
-    next(error);
-  }
-};
-
-
-export const scanTicket = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const { error, value } = scanTicketSchema.validate(req.body);
-    if (error) return sendResponse(res, 400, false, error.details[0].message);
-
-    // Assuming the eventId is passed as a query param or in the body. Let's assume it's in the body for the scanner app.
-    const { eventId } = req.body; 
-
-    const ticket = await ticketService.scanTicket(value.ticketId, eventId, req.user!.id);
-
-    sendResponse(res, 200, true, 'Ticket verified and admitted successfully', ticket);
   } catch (error) {
     next(error);
   }

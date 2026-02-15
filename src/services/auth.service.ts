@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 export class AuthService {
   private generateToken(id: string): string {
     return jwt.sign({ id }, process.env.JWT_SECRET as string, {
-      expiresIn: process.env.JWT_EXPIRES_IN || '1d',
+      expiresIn: (process.env.JWT_EXPIRES_IN as any) || '1d', // <--- Fixed strict typing issue
     });
   }
 
@@ -21,7 +21,6 @@ export class AuthService {
   }
 
   public async loginUser(email: string, password: string): Promise<{ user: IUser; token: string }> {
-    // Select password because it's hidden by default in the model
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       throw { statusCode: 401, message: 'Invalid credentials' };
